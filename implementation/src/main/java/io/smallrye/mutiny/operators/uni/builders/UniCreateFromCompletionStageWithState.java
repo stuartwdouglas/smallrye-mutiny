@@ -8,6 +8,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import io.smallrye.mutiny.helpers.EmptyUniSubscription;
+import io.smallrye.mutiny.helpers.ExecutionChain;
 import io.smallrye.mutiny.operators.AbstractUni;
 import io.smallrye.mutiny.subscription.UniSubscriber;
 
@@ -32,6 +33,11 @@ public class UniCreateFromCompletionStageWithState<T, S> extends AbstractUni<T> 
 
     @Override
     protected void subscribing(UniSubscriber<? super T> subscriber) {
+        subscribing(subscriber, executionChain);
+    }
+
+    @Override
+    protected void subscribing(UniSubscriber<? super T> subscriber, ExecutionChain executionChain) {
         S state;
         try {
             state = holder.get();
@@ -52,6 +58,6 @@ public class UniCreateFromCompletionStageWithState<T, S> extends AbstractUni<T> 
             return;
         }
 
-        forwardFromCompletionStage(stage, subscriber);
+        forwardFromCompletionStage(stage, subscriber, executionChain);
     }
 }

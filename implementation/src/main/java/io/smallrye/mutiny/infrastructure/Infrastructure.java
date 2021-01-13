@@ -17,6 +17,7 @@ import org.reactivestreams.Subscriber;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.helpers.ExecutionChain;
 import io.smallrye.mutiny.helpers.ParameterValidation;
 import io.smallrye.mutiny.subscription.UniSubscriber;
 
@@ -84,15 +85,22 @@ public class Infrastructure {
         return DEFAULT_EXECUTOR;
     }
 
-    public static <T> Uni<T> onUniCreation(Uni<T> instance) {
+    public static <T> Uni<T> onUniCreation(Uni<T> instance, ExecutionChain executionChain) {
         if (UNI_INTERCEPTORS.isEmpty()) {
             return instance;
         }
         Uni<T> current = instance;
         for (UniInterceptor itcp : UNI_INTERCEPTORS) {
-            current = itcp.onUniCreation(current);
+            current = itcp.onUniCreation(current, executionChain);
         }
         return current;
+    }
+
+    public static <T> Uni<T> onUniCreation(Uni<T> instance) {
+        if (UNI_INTERCEPTORS.isEmpty()) {
+            return instance;
+        }
+        return onUniCreation(instance, null);
     }
 
     public static <T> Multi<T> onMultiCreation(Multi<T> instance) {
@@ -106,13 +114,14 @@ public class Infrastructure {
         return current;
     }
 
-    public static <T> UniSubscriber<? super T> onUniSubscription(Uni<T> instance, UniSubscriber<? super T> subscriber) {
+    public static <T> UniSubscriber<? super T> onUniSubscription(Uni<T> instance, UniSubscriber<? super T> subscriber,
+            ExecutionChain executionChain) {
         if (UNI_INTERCEPTORS.isEmpty()) {
             return subscriber;
         }
         UniSubscriber<? super T> current = subscriber;
         for (UniInterceptor interceptor : UNI_INTERCEPTORS) {
-            current = interceptor.onSubscription(instance, current);
+            current = interceptor.onSubscription(instance, current, executionChain);
         }
         return current;
     }

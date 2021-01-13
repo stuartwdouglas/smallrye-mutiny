@@ -24,18 +24,21 @@ public class UniCallbackSubscriber<T> implements UniSubscriber<T>, UniSubscripti
     private final AtomicReference<UniSubscription> subscription = new AtomicReference<>();
     private final Consumer<? super T> onResultCallback;
     private final Consumer<? super Throwable> onFailureCallback;
+    private final ExecutionChain executionChain;
 
     /**
      * Creates a {@link UniSubscriber} consuming the item and failure of a
      * {@link Uni}.
-     *
+     * 
      * @param onResultCallback callback invoked on item event, must not be {@code null}
      * @param onFailureCallback callback invoked on failure event, must not be {@code null}
+     * @param executionChain
      */
     public UniCallbackSubscriber(Consumer<? super T> onResultCallback,
-            Consumer<? super Throwable> onFailureCallback) {
+            Consumer<? super Throwable> onFailureCallback, ExecutionChain executionChain) {
         this.onResultCallback = nonNull(onResultCallback, "onResultCallback");
         this.onFailureCallback = nonNull(onFailureCallback, "onFailureCallback");
+        this.executionChain = nonNull(executionChain, "executionChain");
     }
 
     @Override
@@ -43,7 +46,12 @@ public class UniCallbackSubscriber<T> implements UniSubscriber<T>, UniSubscripti
         if (!subscription.compareAndSet(null, sub)) {
             // cancelling this second subscription
             // because we already add a subscription (maybe CANCELLED)
-            sub.cancel();
+            executionChain.execute(new ExecutionChain.ChainTask<Void>() {
+                @Override
+                public void runChainTask(Void ctx, ExecutionChain chain) {
+                    sub.cancel();
+                }
+            });
         }
     }
 
@@ -54,7 +62,12 @@ public class UniCallbackSubscriber<T> implements UniSubscriber<T>, UniSubscripti
             // Already cancelled, do nothing
             return;
         }
-        onFailureCallback.accept(t);
+        executionChain.execute(new ExecutionChain.ChainTask<Void>() {
+            @Override
+            public void runChainTask(Void v, ExecutionChain chain) {
+                onFailureCallback.accept(t);
+            }
+        });
     }
 
     @Override
@@ -64,19 +77,28 @@ public class UniCallbackSubscriber<T> implements UniSubscriber<T>, UniSubscripti
             // Already cancelled, do nothing
             return;
         }
-
-        try {
-            onResultCallback.accept(x);
-        } catch (Throwable t) {
-            Infrastructure.handleDroppedException(t);
-        }
+        executionChain.execute(new ExecutionChain.ChainTask<Void>() {
+            @Override
+            public void runChainTask(Void obj, ExecutionChain chain) {
+                try {
+                    onResultCallback.accept(x);
+                } catch (Throwable t) {
+                    Infrastructure.handleDroppedException(t);
+                }
+            }
+        });
     }
 
     @Override
     public void cancel() {
         Subscription sub = subscription.getAndSet(CANCELLED);
         if (sub != null) {
-            sub.cancel();
+            executionChain.execute(new ExecutionChain.ChainTask<Void>() {
+                @Override
+                public void runChainTask(Void obj, ExecutionChain chain) {
+                    sub.cancel();
+                }
+            });
         }
     }
 }

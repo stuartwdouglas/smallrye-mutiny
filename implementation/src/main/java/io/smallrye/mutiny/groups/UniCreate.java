@@ -13,6 +13,7 @@ import org.reactivestreams.Publisher;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.converters.UniConverter;
+import io.smallrye.mutiny.helpers.ExecutionChain;
 import io.smallrye.mutiny.helpers.ParameterValidation;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.mutiny.operators.*;
@@ -128,8 +129,11 @@ public class UniCreate {
      * @return the produced {@link Uni}
      */
     public <T> Uni<T> completionStage(Supplier<? extends CompletionStage<? extends T>> supplier) {
+        ExecutionChain executionChain = new ExecutionChain();
         return Infrastructure
-                .onUniCreation(new UniCreateFromCompletionStage<>(ParameterValidation.nonNull(supplier, "supplier")));
+                .onUniCreation(
+                        new UniCreateFromCompletionStage<>(ParameterValidation.nonNull(supplier, "supplier"), executionChain),
+                        executionChain);
     }
 
     /**
@@ -152,7 +156,7 @@ public class UniCreate {
      */
     public <T> Uni<T> publisher(Publisher<? extends T> publisher) {
         Publisher<? extends T> actual = ParameterValidation.nonNull(publisher, "publisher");
-        return Infrastructure.onUniCreation(new UniCreateFromPublisher<>(actual));
+        return Infrastructure.onUniCreation(new UniCreateFromPublisher<>(actual), null);
     }
 
     /**
@@ -170,7 +174,8 @@ public class UniCreate {
      */
     public <T> Uni<T> item(Supplier<? extends T> supplier) {
         Supplier<? extends T> actual = ParameterValidation.nonNull(supplier, "supplier");
-        return Infrastructure.onUniCreation(new UniCreateFromItemSupplier<>(actual));
+        UniCreateFromItemSupplier<T> instance = new UniCreateFromItemSupplier<>(actual);
+        return Infrastructure.onUniCreation(instance, instance.executionChain);
     }
 
     /**
@@ -281,7 +286,7 @@ public class UniCreate {
      */
     public <T> Uni<T> emitter(Consumer<UniEmitter<? super T>> consumer) {
         Consumer<UniEmitter<? super T>> actual = ParameterValidation.nonNull(consumer, "consumer");
-        return Infrastructure.onUniCreation(new UniCreateWithEmitter<>(actual));
+        return Infrastructure.onUniCreation(new UniCreateWithEmitter<>(actual), null);
     }
 
     /**
@@ -337,7 +342,7 @@ public class UniCreate {
      */
     public <T> Uni<T> deferred(Supplier<Uni<? extends T>> supplier) {
         Supplier<Uni<? extends T>> actual = ParameterValidation.nonNull(supplier, "supplier");
-        return Infrastructure.onUniCreation(new UniCreateFromDeferredSupplier<>(actual));
+        return Infrastructure.onUniCreation(new UniCreateFromDeferredSupplier<>(actual), null);
     }
 
     /**

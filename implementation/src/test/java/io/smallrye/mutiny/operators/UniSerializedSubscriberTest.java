@@ -89,7 +89,7 @@ public class UniSerializedSubscriberTest {
 
     @Test
     public void testRogueUpstreamSendingFailureBeforeSubscription() {
-        AbstractUni<Integer> rogue = new AbstractUni<Integer>() {
+        AbstractUni<Integer> rogue = new AbstractUni<Integer>(null) {
             @Override
             protected void subscribing(UniSubscriber<? super Integer> subscriber) {
                 subscriber.onFailure(new IOException("boom"));
@@ -109,7 +109,7 @@ public class UniSerializedSubscriberTest {
 
     @Test
     public void testRogueUpstreamSendingItemBeforeSubscription() {
-        AbstractUni<Integer> rogue = new AbstractUni<Integer>() {
+        AbstractUni<Integer> rogue = new AbstractUni<Integer>(null) {
             @Override
             protected void subscribing(UniSubscriber<? super Integer> subscriber) {
                 subscriber.onItem(1);
@@ -129,7 +129,7 @@ public class UniSerializedSubscriberTest {
 
     @Test
     public void testInvalidStateWhenOnSubscribeIsCalled() {
-        AbstractUni<Integer> rogue = new AbstractUni<Integer>() {
+        AbstractUni<Integer> rogue = new AbstractUni<Integer>(null) {
             @Override
             protected void subscribing(UniSubscriber<? super Integer> subscriber) {
                 // Do nothing
@@ -137,7 +137,7 @@ public class UniSerializedSubscriberTest {
         };
 
         UniAssertSubscriber<Integer> subscriber = UniAssertSubscriber.create();
-        UniSerializedSubscriber<Integer> serialized = new UniSerializedSubscriber<>(rogue, subscriber);
+        UniSerializedSubscriber<Integer> serialized = new UniSerializedSubscriber<>(rogue, subscriber, null);
 
         serialized.onSubscribe(() -> {
         });
@@ -149,7 +149,7 @@ public class UniSerializedSubscriberTest {
 
     @Test
     public void testRogueUpstreamSendingMultipleItems() {
-        AbstractUni<Integer> rogue = new AbstractUni<Integer>() {
+        AbstractUni<Integer> rogue = new AbstractUni<Integer>(null) {
             @Override
             protected void subscribing(UniSubscriber<? super Integer> subscriber) {
                 subscriber.onSubscribe(() -> {
@@ -383,7 +383,7 @@ public class UniSerializedSubscriberTest {
         Infrastructure.setDroppedExceptionHandler(captured::set);
 
         AtomicReference<UniSubscriber<? super Integer>> sub = new AtomicReference<>();
-        AbstractUni<Integer> uni = new AbstractUni<Integer>() {
+        AbstractUni<Integer> uni = new AbstractUni<Integer>(null) {
             @Override
             protected void subscribing(UniSubscriber<? super Integer> subscriber) {
                 sub.set(subscriber);
@@ -425,7 +425,7 @@ public class UniSerializedSubscriberTest {
         Infrastructure.setDroppedExceptionHandler(captured::set);
 
         AtomicReference<UniSubscriber<? super Integer>> sub = new AtomicReference<>();
-        AbstractUni<Integer> uni = new AbstractUni<Integer>() {
+        AbstractUni<Integer> uni = new AbstractUni<Integer>(null) {
             @Override
             protected void subscribing(UniSubscriber<? super Integer> subscriber) {
                 sub.set(subscriber);
@@ -464,7 +464,7 @@ public class UniSerializedSubscriberTest {
         Infrastructure.setDroppedExceptionHandler(captured::set);
 
         AtomicReference<UniSubscriber<? super Integer>> sub = new AtomicReference<>();
-        AbstractUni<Integer> uni = new AbstractUni<Integer>() {
+        AbstractUni<Integer> uni = new AbstractUni<Integer>(null) {
             @Override
             protected void subscribing(UniSubscriber<? super Integer> subscriber) {
                 sub.set(subscriber);

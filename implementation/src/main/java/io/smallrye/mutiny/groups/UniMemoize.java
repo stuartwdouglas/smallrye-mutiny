@@ -35,7 +35,7 @@ public class UniMemoize<T> {
      */
     public Uni<T> until(BooleanSupplier invalidationGuard) {
         BooleanSupplier actual = nonNull(invalidationGuard, "invalidationGuard");
-        return Infrastructure.onUniCreation(new UniMemoizeOp<>(upstream, actual));
+        return Infrastructure.onUniCreation(new UniMemoizeOp<>(upstream, actual), null);
     }
 
     /**

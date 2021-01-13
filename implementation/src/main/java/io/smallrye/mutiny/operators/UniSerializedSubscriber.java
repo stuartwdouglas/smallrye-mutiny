@@ -5,6 +5,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import io.smallrye.mutiny.CompositeException;
 import io.smallrye.mutiny.helpers.EmptyUniSubscription;
+import io.smallrye.mutiny.helpers.ExecutionChain;
+import io.smallrye.mutiny.helpers.InternalUniSubscriber;
 import io.smallrye.mutiny.helpers.ParameterValidation;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.mutiny.subscription.UniSubscriber;
@@ -13,7 +15,7 @@ import io.smallrye.mutiny.subscription.UniSubscription;
 /**
  * An implementation of {@link UniSubscriber} and {@link UniSubscription} making sure event handlers are only called once.
  */
-public class UniSerializedSubscriber<T> implements UniSubscriber<T>, UniSubscription {
+public class UniSerializedSubscriber<T> implements InternalUniSubscriber<T>, UniSubscription {
 
     private static final int INIT = 0;
     /**
@@ -30,6 +32,12 @@ public class UniSerializedSubscriber<T> implements UniSubscriber<T>, UniSubscrip
      * Got a failure or item from upstream
      */
     private static final int DONE = 3;
+    public static final ExecutionChain.ChainTask<UniSerializedSubscriber> SUBSCRIBE_TASK = new ExecutionChain.ChainTask<UniSerializedSubscriber>() {
+        @Override
+        public void runChainTask(UniSerializedSubscriber contextual, ExecutionChain chain) {
+            contextual.subscribe();
+        }
+    };
 
     private final AtomicInteger state = new AtomicInteger(INIT);
     private final AbstractUni<T> upstream;
@@ -37,25 +45,46 @@ public class UniSerializedSubscriber<T> implements UniSubscriber<T>, UniSubscrip
 
     private volatile UniSubscription subscription;
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
+    private final ExecutionChain chain;
 
-    UniSerializedSubscriber(AbstractUni<T> upstream, UniSubscriber<? super T> subscriber) {
+    UniSerializedSubscriber(AbstractUni<T> upstream, UniSubscriber<? super T> subscriber, ExecutionChain chain) {
         this.upstream = ParameterValidation.nonNull(upstream, "source");
         this.downstream = ParameterValidation.nonNull(subscriber, "subscriber` must not be `null`");
+        this.chain = chain;
     }
 
     public static <T> void subscribe(AbstractUni<T> source, UniSubscriber<? super T> subscriber) {
-        UniSubscriber<? super T> actual = Infrastructure.onUniSubscription(source, subscriber);
+        UniSubscriber<? super T> actual = Infrastructure.onUniSubscription(source, subscriber, source.executionChain);
         if (subscriber instanceof UniSerializedSubscriber) {
             source.subscribing(subscriber);
         } else {
-            UniSerializedSubscriber<T> wrapped = new UniSerializedSubscriber<>(source, actual);
+            UniSerializedSubscriber<T> wrapped = new UniSerializedSubscriber<>(source, actual, source.executionChain);
             wrapped.subscribe();
+        }
+    }
+
+    public static <T> void subscribe(AbstractUni<T> source, UniSubscriber<? super T> subscriber, ExecutionChain chain) {
+        if (chain == null) {
+            subscribe(source, subscriber);
+            return;
+        }
+        UniSubscriber<? super T> actual = Infrastructure.onUniSubscription(source, subscriber, chain);
+        if (subscriber instanceof UniSerializedSubscriber) {
+            chain.execute(new ExecutionChain.ChainTask<Void>() {
+                @Override
+                public void runChainTask(Void contextual, ExecutionChain chain) {
+                    source.subscribing(subscriber);
+                }
+            });
+        } else {
+            UniSerializedSubscriber<T> wrapped = new UniSerializedSubscriber<>(source, actual, chain);
+            chain.execute(SUBSCRIBE_TASK, wrapped);
         }
     }
 
     private void subscribe() {
         if (state.compareAndSet(INIT, SUBSCRIBED)) {
-            upstream.subscribing(this);
+            upstream.subscribing(this, chain);
         }
     }
 
@@ -121,6 +150,48 @@ public class UniSerializedSubscriber<T> implements UniSubscriber<T>, UniSubscrip
             }
         } else {
             state.set(DONE);
+        }
+    }
+
+    @Override
+    public void onSubscribe(UniSubscription subscription, ExecutionChain executionChain) {
+        if (executionChain != null && executionChain == chain) {
+            executionChain.execute(new ExecutionChain.ChainTask<Void>() {
+                @Override
+                public void runChainTask(Void contextual, ExecutionChain chain) {
+                    onSubscribe(subscription);
+                }
+            });
+        } else {
+            onSubscribe(subscription);
+        }
+    }
+
+    @Override
+    public void onItem(T item, ExecutionChain executionChain) {
+        if (executionChain != null && executionChain == chain) {
+            executionChain.execute(new ExecutionChain.ChainTask<Void>() {
+                @Override
+                public void runChainTask(Void contextual, ExecutionChain chain) {
+                    onItem(item);
+                }
+            });
+        } else {
+            onItem(item);
+        }
+    }
+
+    @Override
+    public void onFailure(Throwable failure, ExecutionChain executionChain) {
+        if (executionChain != null && executionChain == chain) {
+            executionChain.execute(new ExecutionChain.ChainTask<Void>() {
+                @Override
+                public void runChainTask(Void contextual, ExecutionChain chain) {
+                    onFailure(failure);
+                }
+            });
+        } else {
+            onFailure(failure);
         }
     }
 }

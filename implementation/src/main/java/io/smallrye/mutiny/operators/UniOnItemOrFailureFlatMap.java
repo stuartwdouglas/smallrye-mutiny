@@ -7,6 +7,7 @@ import java.util.function.BiFunction;
 
 import io.smallrye.mutiny.CompositeException;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.helpers.ExecutionChain;
 import io.smallrye.mutiny.subscription.UniSubscriber;
 import io.smallrye.mutiny.subscription.UniSubscription;
 
@@ -24,7 +25,7 @@ public class UniOnItemOrFailureFlatMap<I, O> extends UniOperator<I, O> {
             I item,
             Throwable failure,
             UniSubscriber<? super O> subscriber,
-            UniOnItemTransformToUni.FlatMapSubscription flatMapSubscription) {
+            UniOnItemTransformToUni.FlatMapSubscription flatMapSubscription, ExecutionChain executionChain) {
         Uni<? extends O> outcome;
         try {
             outcome = mapper.apply(item, failure);
@@ -39,7 +40,7 @@ public class UniOnItemOrFailureFlatMap<I, O> extends UniOperator<I, O> {
             return;
         }
 
-        handleInnerSubscription(subscriber, flatMapSubscription, outcome);
+        handleInnerSubscription(subscriber, flatMapSubscription, outcome, executionChain);
     }
 
     @Override
@@ -55,12 +56,12 @@ public class UniOnItemOrFailureFlatMap<I, O> extends UniOperator<I, O> {
 
             @Override
             public void onItem(I item) {
-                invokeAndSubstitute(mapper, item, null, subscriber, flatMapSubscription);
+                invokeAndSubstitute(mapper, item, null, subscriber, flatMapSubscription, executionChain);
             }
 
             @Override
             public void onFailure(Throwable failure) {
-                invokeAndSubstitute(mapper, null, failure, subscriber, flatMapSubscription);
+                invokeAndSubstitute(mapper, null, failure, subscriber, flatMapSubscription, executionChain);
             }
         });
     }

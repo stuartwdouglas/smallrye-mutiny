@@ -11,6 +11,7 @@ import org.reactivestreams.Subscription;
 import io.smallrye.mutiny.CompositeException;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.EmptyUniSubscription;
+import io.smallrye.mutiny.helpers.ExecutionChain;
 import io.smallrye.mutiny.subscription.UniSubscriber;
 import io.smallrye.mutiny.subscription.UniSubscription;
 
@@ -18,14 +19,15 @@ public class UniOnItemTransformToUni<I, O> extends UniOperator<I, O> {
 
     private final Function<? super I, Uni<? extends O>> mapper;
 
-    public UniOnItemTransformToUni(Uni<I> upstream, Function<? super I, Uni<? extends O>> mapper) {
-        super(nonNull(upstream, "upstream"));
+    public UniOnItemTransformToUni(Uni<I> upstream, Function<? super I, Uni<? extends O>> mapper,
+            ExecutionChain executionChain) {
+        super(executionChain, nonNull(upstream, "upstream"));
         this.mapper = nonNull(mapper, "mapper");
     }
 
     public static <I, O> void invokeAndSubstitute(Function<? super I, Uni<? extends O>> mapper, I input,
             UniSubscriber<? super O> subscriber,
-            FlatMapSubscription flatMapSubscription) {
+            FlatMapSubscription flatMapSubscription, ExecutionChain executionChain) {
         Uni<? extends O> outcome;
         try {
             outcome = mapper.apply(input);
@@ -40,11 +42,11 @@ public class UniOnItemTransformToUni<I, O> extends UniOperator<I, O> {
             return;
         }
 
-        handleInnerSubscription(subscriber, flatMapSubscription, outcome);
+        handleInnerSubscription(subscriber, flatMapSubscription, outcome, executionChain);
     }
 
     public static <O> void handleInnerSubscription(UniSubscriber<? super O> subscriber,
-            UniOnItemTransformToUni.FlatMapSubscription flatMapSubscription, Uni<? extends O> outcome) {
+            FlatMapSubscription flatMapSubscription, Uni<? extends O> outcome, ExecutionChain executionChain) {
         if (outcome == null) {
             subscriber.onFailure(new NullPointerException(MAPPER_RETURNED_NULL));
         } else {
@@ -54,7 +56,7 @@ public class UniOnItemTransformToUni<I, O> extends UniOperator<I, O> {
                     flatMapSubscription.replace(secondSubscription);
                 }
             };
-            AbstractUni.subscribe(outcome, delegate);
+            AbstractUni.subscribe(outcome, delegate, executionChain);
         }
     }
 
@@ -71,10 +73,10 @@ public class UniOnItemTransformToUni<I, O> extends UniOperator<I, O> {
 
             @Override
             public void onItem(I item) {
-                invokeAndSubstitute(mapper, item, subscriber, flatMapSubscription);
+                invokeAndSubstitute(mapper, item, subscriber, flatMapSubscription, executionChain);
             }
 
-        });
+        }, executionChain);
     }
 
     protected static class FlatMapSubscription implements UniSubscription {
