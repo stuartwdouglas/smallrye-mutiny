@@ -15,6 +15,7 @@ public class KnownItemUni<T> extends AbstractUni<T> {
     private final T item;
 
     public KnownItemUni(T item) {
+        super(null);
         this.item = item;
     }
 

@@ -9,6 +9,7 @@ public class UniNever<T> extends AbstractUni<T> {
 
     private UniNever() {
         // avoid direct instantiation.
+        super(null);
     }
 
     @Override

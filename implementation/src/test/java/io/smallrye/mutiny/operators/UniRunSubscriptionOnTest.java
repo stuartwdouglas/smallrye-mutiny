@@ -138,7 +138,7 @@ public class UniRunSubscriptionOnTest {
     @Test
     public void testSubscriptionFailing() {
         AtomicBoolean called = new AtomicBoolean();
-        UniAssertSubscriber<Integer> subscriber = new AbstractUni<Integer>() {
+        UniAssertSubscriber<Integer> subscriber = new AbstractUni<Integer>(null) {
 
             @Override
             protected void subscribing(UniSubscriber<? super Integer> subscriber) {

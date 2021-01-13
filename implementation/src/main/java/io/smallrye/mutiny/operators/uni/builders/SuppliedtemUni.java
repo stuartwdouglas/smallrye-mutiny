@@ -17,6 +17,7 @@ public class SuppliedtemUni<T> extends AbstractUni<T> {
     private final Supplier<? extends T> supplier;
 
     public SuppliedtemUni(Supplier<? extends T> supplier) {
+        super(null);
         this.supplier = supplier;
     }
 

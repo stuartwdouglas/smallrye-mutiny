@@ -1,6 +1,7 @@
 package io.smallrye.mutiny.infrastructure;
 
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.helpers.ExecutionChain;
 import io.smallrye.mutiny.operators.AbstractUni;
 import io.smallrye.mutiny.subscription.UniSubscriber;
 
@@ -37,7 +38,7 @@ public interface UniInterceptor {
      * @param <T> the type of item produced by the uni
      * @return the passed uni or a new instance, must not be {@code null}
      */
-    default <T> Uni<T> onUniCreation(Uni<T> uni) {
+    default <T> Uni<T> onUniCreation(Uni<T> uni, ExecutionChain executionChain) {
         return uni;
     }
 
@@ -50,7 +51,8 @@ public interface UniInterceptor {
      * @param <T> the type of item
      * @return the subscriber to use instead of the passed one. By default, it returns the given subscriber.
      */
-    default <T> UniSubscriber<? super T> onSubscription(Uni<T> instance, UniSubscriber<? super T> subscriber) {
+    default <T> UniSubscriber<? super T> onSubscription(Uni<T> instance, UniSubscriber<? super T> subscriber,
+            ExecutionChain executionChain) {
         return subscriber;
     }
 

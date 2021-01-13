@@ -140,7 +140,7 @@ public class UniOnItemOrFailure<T> {
      * @return the new {@link Uni}
      */
     public <R> Uni<R> transform(BiFunction<? super T, Throwable, ? extends R> mapper) {
-        return Infrastructure.onUniCreation(new UniOnItemOrFailureMap<>(upstream, mapper));
+        return Infrastructure.onUniCreation(new UniOnItemOrFailureMap<>(upstream, mapper), null);
     }
 
     /**
@@ -163,7 +163,7 @@ public class UniOnItemOrFailure<T> {
      *         in an asynchronous manner.
      */
     public <R> Uni<R> transformToUni(BiFunction<? super T, Throwable, Uni<? extends R>> mapper) {
-        return Infrastructure.onUniCreation(new UniOnItemOrFailureFlatMap<>(upstream, mapper));
+        return Infrastructure.onUniCreation(new UniOnItemOrFailureFlatMap<>(upstream, mapper), null);
     }
 
     /**

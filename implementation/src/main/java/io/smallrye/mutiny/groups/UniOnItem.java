@@ -13,6 +13,7 @@ import org.reactivestreams.Publisher;
 
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.helpers.ExecutionChain;
 import io.smallrye.mutiny.helpers.ParameterValidation;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.mutiny.operators.UniOnItemConsume;
@@ -24,9 +25,11 @@ import io.smallrye.mutiny.subscription.UniEmitter;
 public class UniOnItem<T> {
 
     private final Uni<T> upstream;
+    private final ExecutionChain executionChain;
 
-    public UniOnItem(Uni<T> upstream) {
+    public UniOnItem(Uni<T> upstream, ExecutionChain executionChain) {
         this.upstream = nonNull(upstream, "upstream");
+        this.executionChain = executionChain;
     }
 
     /**
@@ -40,7 +43,7 @@ public class UniOnItem<T> {
      */
     public Uni<T> invoke(Consumer<? super T> callback) {
         return Infrastructure.onUniCreation(
-                new UniOnItemConsume<>(upstream, nonNull(callback, "callback"), null, null));
+                new UniOnItemConsume<>(upstream, nonNull(callback, "callback"), null, null), executionChain);
     }
 
     /**
@@ -142,7 +145,7 @@ public class UniOnItem<T> {
      * @return the new {@link Uni}
      */
     public <R> Uni<R> transform(Function<? super T, ? extends R> mapper) {
-        return Infrastructure.onUniCreation(new UniOnItemTransform<>(upstream, mapper));
+        return Infrastructure.onUniCreation(new UniOnItemTransform<>(upstream, mapper), executionChain);
     }
 
     /**
@@ -162,7 +165,7 @@ public class UniOnItem<T> {
      *         in an asynchronous manner.
      */
     public <R> Uni<R> transformToUni(Function<? super T, Uni<? extends R>> mapper) {
-        return Infrastructure.onUniCreation(new UniOnItemTransformToUni<>(upstream, mapper));
+        return Infrastructure.onUniCreation(new UniOnItemTransformToUni<>(upstream, mapper, executionChain), executionChain);
     }
 
     /**
@@ -337,7 +340,7 @@ public class UniOnItem<T> {
         return Infrastructure.onUniCreation(transformToUni(t -> {
             Throwable failure = Objects.requireNonNull(mapper.apply(t), MAPPER_RETURNED_NULL);
             return Uni.createFrom().failure(failure);
-        }));
+        }), executionChain);
     }
 
     /**
@@ -352,7 +355,7 @@ public class UniOnItem<T> {
         return Infrastructure.onUniCreation(transformToUni(ignored -> {
             Throwable failure = Objects.requireNonNull(supplier.get(), SUPPLIER_PRODUCED_NULL);
             return Uni.createFrom().failure(failure);
-        }));
+        }), executionChain);
     }
 
     /**

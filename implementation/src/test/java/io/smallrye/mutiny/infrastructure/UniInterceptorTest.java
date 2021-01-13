@@ -6,6 +6,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.helpers.ExecutionChain;
 import io.smallrye.mutiny.operators.AbstractUni;
 import io.smallrye.mutiny.operators.UniDelegatingSubscriber;
 import io.smallrye.mutiny.subscription.UniSubscriber;
@@ -58,8 +59,8 @@ public class UniInterceptorTest {
             final long creationTime = System.nanoTime();
 
             @Override
-            public <T> Uni<T> onUniCreation(Uni<T> uni) {
-                return new AbstractUni<T>() {
+            public <T> Uni<T> onUniCreation(Uni<T> uni, ExecutionChain executionChain) {
+                return new AbstractUni<T>(null) {
                     @Override
                     protected void subscribing(UniSubscriber<? super T> subscriber) {
                         assertThat(creationTime).isLessThan(System.nanoTime());
@@ -85,8 +86,8 @@ public class UniInterceptorTest {
             final long creationTime = System.nanoTime();
 
             @Override
-            public <T> Uni<T> onUniCreation(Uni<T> uni) {
-                return new AbstractUni<T>() {
+            public <T> Uni<T> onUniCreation(Uni<T> uni, ExecutionChain executionChain) {
+                return new AbstractUni<T>(null) {
                     @Override
                     protected void subscribing(UniSubscriber<? super T> subscriber) {
                         assertThat(creationTime).isLessThan(System.nanoTime());
@@ -109,7 +110,7 @@ public class UniInterceptorTest {
         UniInterceptor interceptor = new UniInterceptor() {
             @Override
             public <T> UniSubscriber<? super T> onSubscription(Uni<T> instance,
-                    UniSubscriber<? super T> subscriber) {
+                    UniSubscriber<? super T> subscriber, ExecutionChain executionChain) {
                 return new UniSubscriber<T>() {
                     @Override
                     public void onSubscribe(UniSubscription subscription) {

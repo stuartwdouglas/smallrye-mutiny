@@ -3,6 +3,7 @@ package io.smallrye.mutiny.operators;
 import java.util.function.Function;
 
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.helpers.ExecutionChain;
 import io.smallrye.mutiny.helpers.ParameterValidation;
 import io.smallrye.mutiny.subscription.UniSubscriber;
 
@@ -16,7 +17,7 @@ public class UniOnItemTransform<I, O> extends UniOperator<I, O> {
     }
 
     @Override
-    protected void subscribing(UniSubscriber<? super O> subscriber) {
+    protected void subscribing(UniSubscriber<? super O> subscriber, ExecutionChain executionChain) {
         AbstractUni.subscribe(upstream(), new UniDelegatingSubscriber<I, O>(subscriber) {
 
             @Override
@@ -34,6 +35,11 @@ public class UniOnItemTransform<I, O> extends UniOperator<I, O> {
                 subscriber.onItem(outcome);
             }
 
-        });
+        }, executionChain);
+    }
+
+    @Override
+    protected void subscribing(UniSubscriber<? super O> subscriber) {
+        subscribing(subscriber, new ExecutionChain());
     }
 }

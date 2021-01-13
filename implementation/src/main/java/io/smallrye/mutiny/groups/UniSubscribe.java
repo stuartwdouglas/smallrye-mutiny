@@ -4,6 +4,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.helpers.ExecutionChain;
 import io.smallrye.mutiny.helpers.ParameterValidation;
 import io.smallrye.mutiny.helpers.UniCallbackSubscriber;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
@@ -27,9 +28,11 @@ import io.smallrye.mutiny.subscription.UniSubscription;
 public class UniSubscribe<T> {
 
     private final AbstractUni<T> upstream;
+    private final ExecutionChain executionChain;
 
     public UniSubscribe(AbstractUni<T> upstream) {
         this.upstream = ParameterValidation.nonNull(upstream, "upstream");
+        executionChain = upstream.executionChain;
     }
 
     /**
@@ -66,9 +69,15 @@ public class UniSubscribe<T> {
     public Cancellable with(Consumer<? super T> onItemCallback, Consumer<? super Throwable> onFailureCallback) {
         UniCallbackSubscriber<T> subscriber = new UniCallbackSubscriber<>(
                 ParameterValidation.nonNull(onItemCallback, "onItemCallback"),
-                ParameterValidation.nonNull(onFailureCallback, "onFailureCallback"));
-        withSubscriber(subscriber);
+                ParameterValidation.nonNull(onFailureCallback, "onFailureCallback"), executionChain);
+        executionChain.executeAndRun(new ExecutionChain.ChainTask<Void>() {
+            @Override
+            public void runChainTask(Void current, ExecutionChain chain) {
+                UniSerializedSubscriber.subscribe(upstream, ParameterValidation.nonNull(subscriber, "subscriber"), chain);
+            }
+        });
         return subscriber;
+
     }
 
     /**
@@ -85,10 +94,16 @@ public class UniSubscribe<T> {
      * @return an object to cancel the computation
      */
     public Cancellable with(Consumer<? super T> onItemCallback) {
+
         UniCallbackSubscriber<T> subscriber = new UniCallbackSubscriber<>(
-                ParameterValidation.nonNull(onItemCallback, "onItemCallback"),
-                Infrastructure::handleDroppedException);
-        withSubscriber(subscriber);
+                ParameterValidation.nonNull(onItemCallback, "onItemCallback"), Infrastructure::handleDroppedException,
+                executionChain);
+        executionChain.executeAndRun(new ExecutionChain.ChainTask<Void>() {
+            @Override
+            public void runChainTask(Void current, ExecutionChain chain) {
+                UniSerializedSubscriber.subscribe(upstream, ParameterValidation.nonNull(subscriber, "subscriber"), chain);
+            }
+        });
         return subscriber;
     }
 

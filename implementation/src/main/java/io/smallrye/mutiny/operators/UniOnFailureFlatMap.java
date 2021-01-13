@@ -45,7 +45,8 @@ public class UniOnFailureFlatMap<I> extends UniOperator<I, I> {
                 }
 
                 if (test) {
-                    UniOnItemTransformToUni.invokeAndSubstitute(mapper, failure, subscriber, flatMapSubscription);
+                    UniOnItemTransformToUni.invokeAndSubstitute(mapper, failure, subscriber, flatMapSubscription,
+                            executionChain);
                 } else {
                     subscriber.onFailure(failure);
                 }

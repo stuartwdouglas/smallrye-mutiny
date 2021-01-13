@@ -23,6 +23,7 @@ public class StateSuppliedtemUni<T, S> extends AbstractUni<T> {
     private volatile S state = null;
 
     public StateSuppliedtemUni(Supplier<S> stateSupplier, Function<S, ? extends T> mapper) {
+        super(null);
         this.stateSupplier = stateSupplier;
         this.mapper = mapper;
     }

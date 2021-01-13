@@ -15,6 +15,7 @@ public class KnownFailureUni<T> extends AbstractUni<T> {
     private final Throwable failure;
 
     public KnownFailureUni(Throwable failure) {
+        super(null);
         this.failure = failure;
     }
 

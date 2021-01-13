@@ -11,6 +11,7 @@ public class UniCreateWithEmitter<T> extends AbstractUni<T> {
     private final Consumer<UniEmitter<? super T>> consumer;
 
     public UniCreateWithEmitter(Consumer<UniEmitter<? super T>> consumer) {
+        super(null);
         this.consumer = nonNull(consumer, "consumer");
     }
 
